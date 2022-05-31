@@ -1,0 +1,26 @@
+[package]
+name = "near-abi-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+base64 = "0.13"
+borsh = "0.9"
+near-account-id = "0.12.0"
+near-crypto = "0.12.0"
+near-jsonrpc-client = "0.3.0"
+near-jsonrpc-primitives = "0.12.0"
+near-primitives = "0.12.0"
+near-sdk = { path = "./near-sdk-rs/near-sdk" }
+proc-macro2 = "1.0"
+serde = "1.0"
+serde_json = "1.0"
+schemafy_lib = { path = "./schemafy-near/schemafy_lib" }
+tokio-retry = "0.3"
+tracing = "0.1"
+quote = "1.0"
+workspaces = "0.3.0"
+
+[dev-dependencies]
+tempdir = "0.3.7"

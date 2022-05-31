@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.0.1",
+  "methods": [
+    {
+      "name": "add",
+      "is_view": true,
+      "is_init": false,
+      "args": [
+        0,
+        0
+      ],
+      "callbacks": [],
+      "callbacks_vec": [],
+      "result": 0
+    }
+  ],
+  "types": [
+    {
+      "id": 0,
+      "schema": {
+        "title": "Pair",
+        "type": "array",
+        "items": [
+          {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0.0
+          },
+          {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0.0
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
+      }
+    }
+  ]
+}
