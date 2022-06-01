@@ -1,5 +1,5 @@
-use crate::Expander;
-use near_sdk::Metadata;
+use crate::{Expander, Schema};
+use near_sdk::AbiRoot;
 use std::{
     collections::HashMap,
     io,
@@ -41,49 +41,69 @@ impl<'a, 'b> Generator<'a, 'b> {
             PathBuf::from(self.input_file)
         };
 
-        let metadata_json = std::fs::read_to_string(&input_file).unwrap_or_else(|err| {
+        let abi_json = std::fs::read_to_string(&input_file).unwrap_or_else(|err| {
             panic!("Unable to read `{}`: {}", input_file.to_string_lossy(), err)
         });
 
-        let near_metadata = serde_json::from_str::<Metadata>(&metadata_json).expect("123");
+        let near_abi = serde_json::from_str::<AbiRoot>(&abi_json).expect("invalid NEAR ABI");
+
+        let schema_json = serde_json::to_string(&near_abi.abi.root_schema).unwrap();
+        let root_schema: Schema = serde_json::from_str(&schema_json).unwrap_or_else(|err| {
+            panic!(
+                "Cannot parse `{}` as JSON: {}",
+                input_file.to_string_lossy(),
+                err
+            )
+        });
 
         let mut token_stream = proc_macro2::TokenStream::new();
+        let mut expander = Expander::new(&self.contract_name, self.schemafy_path, &root_schema);
+        token_stream.extend(expander.expand(&root_schema));
+
         let mut registry = HashMap::<u32, String>::new();
-        for t in near_metadata.types {
+        for t in near_abi.abi.types {
             let schema_json = serde_json::to_string(&t.schema).unwrap();
-
-            let schema = serde_json::from_str(&schema_json).unwrap_or_else(|err| {
-                panic!("Cannot parse `{}` as JSON: {}", input_file.to_string_lossy(), err)
+            let schema: Schema = serde_json::from_str(&schema_json).unwrap_or_else(|err| {
+                panic!(
+                    "Cannot parse `{}` as JSON: {}",
+                    input_file.to_string_lossy(),
+                    err
+                )
             });
+            let field_type = expander.expand_type_(&schema);
 
-            let mut expander = Expander::new(&self.contract_name, self.schemafy_path, &schema);
-            token_stream.extend(expander.expand(&schema));
-            registry.insert(t.id, schema.title.clone().unwrap());
+            registry.insert(t.id, field_type.typ);
         }
 
-        let methods = near_metadata
-            .methods
+        let functions = near_abi
+            .abi
+            .functions
             .iter()
-            .map(|m| {
-                let name = format_ident!("{}", m.name);
-                let result_type = m
+            .map(|f| {
+                let name = format_ident!("{}", f.name);
+                let result_type = f
                     .result
-                    .map(|r_id| {
+                    .clone()
+                    .map(|r_param| {
                         let r_type = format_ident!(
                             "{}",
-                            registry.get(&r_id).expect("Unexpected result type")
+                            registry
+                                .get(&r_param.type_id)
+                                .expect("Unexpected result type")
                         );
                         quote! { -> #r_type }
                     })
                     .unwrap_or_else(|| quote! {});
-                let args = m
-                    .args
+                let args = f
+                    .params
                     .iter()
                     .enumerate()
-                    .map(|(i, a_id)| {
+                    .map(|(i, a_param)| {
                         let a_type = format_ident!(
                             "{}",
-                            registry.get(&a_id).expect("Unexpected argument type")
+                            registry
+                                .get(&a_param.type_id)
+                                .expect("Unexpected argument type")
                         );
                         let a_name = format_ident!("arg{}", &i);
                         quote! { #a_name: #a_type }
@@ -97,7 +117,7 @@ impl<'a, 'b> Generator<'a, 'b> {
         token_stream.extend(quote! {
             #[near_sdk::ext_contract]
             pub trait #ext_contract_ident {
-                #(#methods)*
+                #(#functions)*
             }
         });
 
@@ -109,7 +129,9 @@ impl<'a, 'b> Generator<'a, 'b> {
         let tokens = self.generate();
         let out = tokens.to_string();
         std::fs::write(output_file, &out)?;
-        Command::new("rustfmt").arg(output_file.as_ref().as_os_str()).output()?;
+        Command::new("rustfmt")
+            .arg(output_file.as_ref().as_os_str())
+            .output()?;
         Ok(())
     }
 }

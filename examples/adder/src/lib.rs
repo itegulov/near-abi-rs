@@ -1,4 +1,6 @@
 pub mod ext {
+    use serde::{Deserialize, Serialize};
+
     include!(concat!(env!("OUT_DIR"), "/adder-metadata.rs"));
 }
 

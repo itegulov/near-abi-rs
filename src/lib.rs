@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use near_sdk::{serde_json, Metadata};
+use near_sdk::{serde_json, AbiRoot};
 use quote::{format_ident, quote};
 use schemafy_lib::Expander;
 use std::collections::HashMap;
@@ -30,12 +30,23 @@ impl Config {
                 .ok_or_else(|| anyhow!("{:?} is not a valid ABI path", &abi_path))?;
             let rust_path = target.join(abi_filename).with_extension("rs");
             let abi_content = fs::read_to_string(abi_path)?;
-            let metadata = serde_json::from_str::<Metadata>(&abi_content)?;
+            let abi_root = serde_json::from_str::<AbiRoot>(&abi_content)?;
 
             let mut token_stream = proc_macro2::TokenStream::new();
+            let root_schema_json = serde_json::to_string(&abi_root.abi.root_schema).unwrap();
+            let root_schema = serde_json::from_str(&root_schema_json).unwrap_or_else(|err| {
+                panic!(
+                    "Cannot parse `{}` as JSON: {}",
+                    abi_path.to_string_lossy(),
+                    err
+                )
+            });
+            let mut expander = Expander::new("", "", &root_schema);
+            token_stream.extend(expander.expand(&root_schema));
+
             let mut registry = HashMap::<u32, String>::new();
-            for type_def in metadata.types {
-                let schema_json = serde_json::to_string(&type_def.schema).unwrap();
+            for abi_type in abi_root.abi.types {
+                let schema_json = serde_json::to_string(&abi_type.schema).unwrap();
 
                 let schema = serde_json::from_str(&schema_json).unwrap_or_else(|err| {
                     panic!(
@@ -45,9 +56,8 @@ impl Config {
                     )
                 });
 
-                let mut expander = Expander::new("", "", &schema);
-                token_stream.extend(expander.expand(&schema));
-                registry.insert(type_def.id, schema.title.clone().unwrap());
+                let typ = expander.expand_type_(&schema).typ;
+                registry.insert(abi_type.id, typ);
             }
 
             token_stream.extend(quote! {
@@ -57,36 +67,46 @@ impl Config {
             });
 
             let mut methods_stream = proc_macro2::TokenStream::new();
-            for method in metadata.methods {
-                let name = format_ident!("{}", method.name);
-                let arg_names = method
-                    .args
+            for function in abi_root.abi.functions {
+                let name = format_ident!("{}", function.name);
+                let param_names = function
+                    .params
                     .iter()
                     .enumerate()
                     .map(|(i, _)| format_ident!("arg{}", i))
                     .collect::<Vec<_>>();
-                let args = method
-                    .args
+                let params = function
+                    .params
                     .iter()
-                    .zip(arg_names.iter())
-                    .map(|(arg_type_id, arg_name)| {
-                        let arg_type = format_ident!("{}", registry.get(arg_type_id).unwrap());
+                    .zip(param_names.iter())
+                    .map(|(arg_param, arg_name)| {
+                        let arg_type =
+                            format_ident!("{}", registry.get(&arg_param.type_id).unwrap());
                         quote! { #arg_name: #arg_type }
                     })
                     .collect::<Vec<_>>();
-                let return_type =
-                    format_ident!("{}", registry.get(&method.result.unwrap()).unwrap());
+                let return_type = format_ident!(
+                    "{}",
+                    registry.get(&function.result.unwrap().type_id).unwrap()
+                );
                 let name_str = name.to_string();
-                if method.is_view {
+                let args = if param_names.is_empty() {
+                    // Special case for parameter-less functions because otherwise the type for
+                    // `[]` is not inferrable.
+                    quote! { () }
+                } else {
+                    quote! { [#(#param_names),*] }
+                };
+                if function.is_view {
                     methods_stream.extend(quote! {
                         pub async fn #name(
                             &self,
                             worker: &workspaces::Worker<impl workspaces::Network>,
-                            #(#args),*
+                            #(#params),*
                         ) -> anyhow::Result<#return_type> {
                             let result = self.contract
                                 .call(worker, #name_str)
-                                .args_json([#(#arg_names),*])?
+                                .args_json(#args)?
                                 .view()
                                 .await?;
                             result.json::<#return_type>()
@@ -99,11 +119,11 @@ impl Config {
                             worker: &workspaces::Worker<impl workspaces::Network>,
                             gas: near_primitives::types::Gas,
                             deposit: near_primitives::types::Balance,
-                            #(#args),*
+                            #(#params),*
                         ) -> anyhow::Result<#return_type> {
                             let result = self.contract
                                 .call(worker, #name_str)
-                                .args_json([#(#arg_names),*])?
+                                .args_json(#args)?
                                 .gas(gas)
                                 .deposit(deposit)
                                 .transact()

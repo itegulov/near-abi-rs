@@ -319,8 +319,8 @@ pub struct Expander<'r> {
     types: Vec<(String, TokenStream)>,
 }
 
-struct FieldType {
-    typ: String,
+pub struct FieldType {
+    pub typ: String,
     attributes: Vec<String>,
     default: bool,
 }
@@ -428,7 +428,7 @@ impl<'r> Expander<'r> {
         result
     }
 
-    fn expand_type_(&mut self, typ: &Schema) -> FieldType {
+    pub fn expand_type_(&mut self, typ: &Schema) -> FieldType {
         if let Some(ref ref_) = typ.ref_ {
             self.type_ref(ref_).into()
         } else if typ.any_of.as_ref().map_or(false, |a| a.len() >= 2) {
