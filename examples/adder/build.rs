@@ -3,6 +3,5 @@ use near_abi_rs::Config;
 fn main() -> anyhow::Result<()> {
     let config = Config { out_dir: None };
     config.compile_abi(&["src/adder-metadata.json"])?;
-    // prost_build::compile_protos(&["src/items.proto"], &["src/"])?;
     Ok(())
 }

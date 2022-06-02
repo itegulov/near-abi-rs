@@ -6,7 +6,7 @@ pub mod ext {
 
 #[cfg(test)]
 mod tests {
-    use crate::ext::ExtContract;
+    use crate::ext::ExtAdder;
     use test_log::test;
     use workspaces::network::DevAccountDeployer;
 
