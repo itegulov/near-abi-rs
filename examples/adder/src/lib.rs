@@ -17,7 +17,7 @@ mod tests {
             .dev_deploy(include_bytes!("../res/adder.wasm"))
             .await?;
 
-        let contract = ExtContract { contract: contract };
+        let contract = ExtAdder { contract: contract };
         let res = contract.add(&worker, vec![3, 4], vec![2, 1]).await?;
         assert_eq!(res, [5, 5]);
 

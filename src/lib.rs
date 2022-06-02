@@ -1,5 +1,7 @@
 use anyhow::{anyhow, Result};
-use near_sdk::{serde_json, AbiRoot};
+use convert_case::{Case, Casing};
+use near_sdk::__private::AbiRoot;
+use near_sdk::serde_json;
 use quote::{format_ident, quote};
 use schemafy_lib::Expander;
 use std::collections::HashMap;
@@ -60,8 +62,17 @@ impl Config {
                 registry.insert(abi_type.id, typ);
             }
 
+            let contract_name = format_ident!(
+                "Ext{}",
+                abi_root
+                    .metainfo
+                    .name
+                    .map(|n| n.to_case(Case::UpperCamel))
+                    .unwrap_or("Contract".to_string())
+            );
+
             token_stream.extend(quote! {
-                pub struct ExtContract {
+                pub struct #contract_name {
                     pub contract: workspaces::Contract,
                 }
             });
@@ -135,7 +146,7 @@ impl Config {
             }
 
             token_stream.extend(quote! {
-                impl ExtContract {
+                impl #contract_name {
                     #methods_stream
                 }
             });

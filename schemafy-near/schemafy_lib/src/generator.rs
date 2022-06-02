@@ -1,5 +1,5 @@
 use crate::{Expander, Schema};
-use near_sdk::AbiRoot;
+use near_sdk::__private::AbiRoot;
 use std::{
     collections::HashMap,
     io,

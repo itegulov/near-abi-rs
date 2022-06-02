@@ -7,6 +7,7 @@ edition = "2021"
 anyhow = "1.0"
 base64 = "0.13"
 borsh = "0.9"
+convert_case = "0.5"
 near-account-id = "0.12.0"
 near-crypto = "0.12.0"
 near-jsonrpc-client = "0.3.0"
@@ -20,7 +21,6 @@ schemafy_lib = { path = "./schemafy-near/schemafy_lib" }
 tokio-retry = "0.3"
 tracing = "0.1"
 quote = "1.0"
-workspaces = "0.3.0"
 
 [dev-dependencies]
 tempdir = "0.3.7"
