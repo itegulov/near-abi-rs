@@ -43,7 +43,7 @@ impl Config {
                     err
                 )
             });
-            let mut expander = Expander::new("", "", &root_schema);
+            let mut expander = Expander::new(None, "", &root_schema);
             token_stream.extend(expander.expand(&root_schema));
 
             let mut registry = HashMap::<u32, String>::new();
@@ -58,7 +58,7 @@ impl Config {
                     )
                 });
 
-                let typ = expander.expand_type_(&schema).typ;
+                let typ = expander.expand_type_from_schema(&schema).typ;
                 registry.insert(abi_type.id, typ);
             }
 

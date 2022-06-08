@@ -8,7 +8,7 @@ anyhow = "1.0"
 near-account-id = "0.12.0"
 near-crypto = "0.12.0"
 near-primitives = "0.12.0"
-near-sdk = { path = "../../near-sdk-rs/near-sdk" }
+near-sdk = { git = "https://github.com/near/near-sdk-rs", branch = "daniyar/abi-macro", features = ["unstable"] }
 near-abi-rs = { path = "../.." }
 serde_json = "1.0"
 serde = "1.0"

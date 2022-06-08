@@ -2,7 +2,7 @@
   "abi_schema_version": "0.1.0",
   "metainfo": {
     "name": "adder",
-    "version": "1.1.0",
+    "version": "0.1.0",
     "authors": [
       "Near Inc <hello@nearprotocol.com>"
     ]
@@ -15,10 +15,12 @@
         "is_init": false,
         "params": [
           {
+            "name": "a",
             "type_id": 0,
             "serialization_type": "json"
           },
           {
+            "name": "b",
             "type_id": 0,
             "serialization_type": "json"
           }
@@ -32,7 +34,6 @@
         "name": "add_callback",
         "is_view": true,
         "is_init": false,
-        "params": [],
         "callbacks": [
           {
             "type_id": 1,
@@ -55,15 +56,15 @@
     ],
     "types": [
       {
-        "id": 0,
-        "schema": {
-          "$ref": "#/definitions/Pair"
-        }
-      },
-      {
         "id": 1,
         "schema": {
           "$ref": "#/definitions/DoublePair"
+        }
+      },
+      {
+        "id": 0,
+        "schema": {
+          "$ref": "#/definitions/Pair"
         }
       },
       {

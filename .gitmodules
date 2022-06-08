@@ -1,4 +1,0 @@
-[submodule "near-sdk-rs"]
-	path = near-sdk-rs
-	url = git@github.com:near/near-sdk-rs.git
-	branch = daniyar/aci
